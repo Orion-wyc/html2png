@@ -50,7 +50,8 @@
         backgroundColor: 'transparent',
         maxWidth: 'original',
         marginEnabled: false,
-        marginSize: 50
+        marginSize: 50,
+        compressionMode: 'lossless'
     };
     
     // 样式常量
@@ -463,11 +464,33 @@
                 const link = document.createElement('a');
                 const fileName = `html-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
                 link.download = fileName;
-                link.href = finalCanvas.toDataURL('image/png');
+                
+                // 使用 UPNG.js 优化 PNG 编码
+                if (window.UPNG && window.pako) {
+                    const ctx = finalCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    
+                    let cnum = 0;
+                    if (globalSettings.compressionMode === 'lossy256') {
+                        cnum = 256;
+                    } else if (globalSettings.compressionMode === 'lossy128') {
+                        cnum = 128;
+                    }
+                    
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+                    link.href = URL.createObjectURL(pngBlob);
+                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode);
+                } else {
+                    link.href = finalCanvas.toDataURL('image/png');
+                }
                 
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                if (link.href.startsWith('blob:')) {
+                    URL.revokeObjectURL(link.href);
+                }
                 
                 console.log('图片下载完成:', fileName);
                 
@@ -807,6 +830,14 @@
                 </div>
             </div>
             <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">压缩:</label>
+                <select id="compressionSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <option value="lossless">高质量（无损）</option>
+                    <option value="lossy256">小体积（256色）</option>
+                    <option value="lossy128">更小体积（128色）</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 20px;">
                 <label style="display: flex; align-items: center; margin-bottom: 8px; color: #555; font-weight: 500; cursor: pointer;">
                     <input type="checkbox" id="marginEnabled" style="margin-right: 8px;">
                     增加边距
@@ -880,6 +911,10 @@
                 break;
             }
         }
+        
+        // 获取压缩模式
+        const compressionSelect = document.getElementById('compressionSelect');
+        const compressionMode = compressionSelect ? compressionSelect.value : 'lossless';
         
         // 获取边距设置
         const marginEnabled = document.getElementById('marginEnabled').checked;
@@ -1030,7 +1065,26 @@
                 const link = document.createElement('a');
                 const fileName = `html-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
                 link.download = fileName;
-                link.href = finalCanvas.toDataURL('image/png');
+                
+                // 使用 UPNG.js 优化 PNG 编码
+                if (window.UPNG && window.pako) {
+                    const ctx = finalCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    
+                    let cnum = 0;
+                    if (compressionMode === 'lossy256') {
+                        cnum = 256;
+                    } else if (compressionMode === 'lossy128') {
+                        cnum = 128;
+                    }
+                    
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+                    link.href = URL.createObjectURL(pngBlob);
+                    console.log('UPNG编码完成，压缩模式:', compressionMode);
+                } else {
+                    link.href = finalCanvas.toDataURL('image/png');
+                }
                 
                 console.log('准备下载文件:', fileName);
                 
@@ -1038,6 +1092,9 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                if (link.href.startsWith('blob:')) {
+                    URL.revokeObjectURL(link.href);
+                }
                 
                 console.log('下载链接已触发');
                 
@@ -1273,11 +1330,33 @@
                 const link = document.createElement('a');
                 const fileName = `html-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
                 link.download = fileName;
-                link.href = finalCanvas.toDataURL('image/png');
+                
+                // 使用 UPNG.js 优化 PNG 编码
+                if (window.UPNG && window.pako) {
+                    const ctx = finalCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    
+                    let cnum = 0;
+                    if (globalSettings.compressionMode === 'lossy256') {
+                        cnum = 256;
+                    } else if (globalSettings.compressionMode === 'lossy128') {
+                        cnum = 128;
+                    }
+                    
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+                    link.href = URL.createObjectURL(pngBlob);
+                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode);
+                } else {
+                    link.href = finalCanvas.toDataURL('image/png');
+                }
                 
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                if (link.href.startsWith('blob:')) {
+                    URL.revokeObjectURL(link.href);
+                }
                 
                 console.log('图片下载完成:', fileName);
                 
@@ -1487,6 +1566,30 @@
         }
     }
 
+    // 动态加载 UPNG.js 和 pako
+    function loadUPNG() {
+        return new Promise((resolve, reject) => {
+            if (window.UPNG && window.pako) {
+                resolve();
+                return;
+            }
+            
+            // 先加载 pako（UPNG.js 的依赖）
+            const pakoScript = document.createElement('script');
+            pakoScript.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
+            pakoScript.onload = () => {
+                // pako 加载成功，加载 UPNG.js
+                const upngScript = document.createElement('script');
+                upngScript.src = 'https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js';
+                upngScript.onload = resolve;
+                upngScript.onerror = reject;
+                document.head.appendChild(upngScript);
+            };
+            pakoScript.onerror = reject;
+            document.head.appendChild(pakoScript);
+        });
+    }
+
     // 初始化
     function init() {
         console.log('[Combined] init() 被调用，document.readyState:', document.readyState);
@@ -1501,8 +1604,13 @@
         createHighlightOverlay();
         createBlockingOverlay();
         
-        // html2canvas库已经包含在文件中
-        console.log('HTML导出PNG工具插件版已加载完成，html2canvas可用');
+        // 加载 UPNG.js（PNG 优化库）
+        loadUPNG().then(() => {
+            console.log('HTML导出PNG工具插件版已加载完成（含 UPNG.js 优化）');
+        }).catch(error => {
+            console.warn('UPNG.js 加载失败，将使用原生 PNG 导出:', error);
+            console.log('HTML导出PNG工具插件版已加载完成');
+        });
     }
     
     // 启动

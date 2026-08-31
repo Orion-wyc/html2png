@@ -27,7 +27,8 @@
         backgroundColor: 'transparent',
         maxWidth: 'original',
         marginEnabled: false,
-        marginSize: 50
+        marginSize: 50,
+        compressionMode: 'lossless'
     };
     
     // 工具状态管理
@@ -449,6 +450,15 @@
                 </select>
             </div>
             
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 6px; color: #555; font-size: 14px; font-weight: 500;">压缩:</label>
+                <select id="compressionSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    <option value="lossless">高质量（无损）</option>
+                    <option value="lossy256">小体积（256色）</option>
+                    <option value="lossy128">更小体积（128色）</option>
+                </select>
+            </div>
+            
             <div style="margin-bottom: 0;">
                 <label style="display: flex; align-items: center; margin-bottom: 8px; color: #555; font-size: 14px; font-weight: 500; cursor: pointer;">
                     <input type="checkbox" id="marginEnabled" style="margin-right: 8px;">
@@ -488,6 +498,11 @@
         const sizeSelect = settingsPanel.querySelector('#sizeSelect');
         sizeSelect.addEventListener('change', (e) => {
             globalSettings.maxWidth = e.target.value;
+        });
+        
+        const compressionSelect = settingsPanel.querySelector('#compressionSelect');
+        compressionSelect.addEventListener('change', (e) => {
+            globalSettings.compressionMode = e.target.value;
         });
         
         // 边距功能事件绑定
@@ -644,6 +659,7 @@
     function updateSettings() {
         const bgRadios = document.querySelectorAll('[data-html-exporter="settings-panel"] input[name="background"]');
         const sizeSelect = document.querySelector('[data-html-exporter="settings-panel"] #sizeSelect');
+        const compressionSelect = document.querySelector('[data-html-exporter="settings-panel"] #compressionSelect');
         
         if (bgRadios.length > 0) {
             for (const radio of bgRadios) {
@@ -662,6 +678,10 @@
         
         if (sizeSelect) {
             globalSettings.maxWidth = sizeSelect.value;
+        }
+        
+        if (compressionSelect) {
+            globalSettings.compressionMode = compressionSelect.value;
         }
     }
     
@@ -873,11 +893,50 @@
                 const link = document.createElement('a');
                 const fileName = `html-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
                 link.download = fileName;
-                link.href = finalCanvas.toDataURL('image/png');
+                
+                // 使用 UPNG.js 优化 PNG 编码
+                let pngBlob;
+                if (window.UPNG && window.pako) {
+                    const ctx = finalCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    
+                    // 根据压缩模式选择颜色数
+                    let cnum = 0; // 默认无损
+                    if (globalSettings.compressionMode === 'lossy256') {
+                        cnum = 256;
+                    } else if (globalSettings.compressionMode === 'lossy128') {
+                        cnum = 128;
+                    }
+                    
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode, '颜色数:', cnum === 0 ? '无损' : cnum);
+                } else {
+                    // 降级到原生导出
+                    console.warn('UPNG.js 未加载，使用原生导出');
+                    const dataUrl = finalCanvas.toDataURL('image/png');
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    console.log('图片下载完成:', fileName);
+                    showToast('下载成功！继续选择下一个元素', 'success', 2000);
+                    setTimeout(() => {
+                        if (toolStatus === 'downloading') {
+                            selectedElement = null;
+                            isDownloading = false;
+                            startSelection();
+                        }
+                    }, 800);
+                    return;
+                }
+                
+                link.href = URL.createObjectURL(pngBlob);
                 
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
                 
                 console.log('图片下载完成:', fileName);
                 
@@ -1409,6 +1468,30 @@
         });
     }
     
+    // 动态加载 UPNG.js 和 pako
+    function loadUPNG() {
+        return new Promise((resolve, reject) => {
+            if (window.UPNG && window.pako) {
+                resolve();
+                return;
+            }
+            
+            // 先加载 pako（UPNG.js 的依赖）
+            const pakoScript = document.createElement('script');
+            pakoScript.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
+            pakoScript.onload = () => {
+                // pako 加载成功，加载 UPNG.js
+                const upngScript = document.createElement('script');
+                upngScript.src = 'https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js';
+                upngScript.onload = resolve;
+                upngScript.onerror = reject;
+                document.head.appendChild(upngScript);
+            };
+            pakoScript.onerror = reject;
+            document.head.appendChild(pakoScript);
+        });
+    }
+    
     // 初始化
     function init() {
         // 等待DOM加载完成
@@ -1419,14 +1502,17 @@
         
         // 加载html2canvas库
         loadHtml2Canvas().then(() => {
+            // 加载 UPNG.js（PNG 优化库）
+            return loadUPNG();
+        }).then(() => {
             // 创建UI元素
             createMainPanel();
             createHighlightOverlay();
             createBlockingOverlay();
             
-            // HTML导出PNG工具已加载完成
+            console.log('HTML导出PNG工具已加载完成（含 UPNG.js 优化）');
         }).catch(error => {
-            console.error('加载html2canvas库失败:', error);
+            console.error('加载依赖库失败:', error);
             showToast('工具初始化失败，请检查网络连接', 'error', 5000);
         });
     }
