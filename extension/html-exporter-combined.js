@@ -349,8 +349,6 @@
             useCORS: true,
             scale: 2,
             logging: false,
-            width: maxWidth === 'original' ? undefined : parseInt(maxWidth),
-            height: undefined,
             ignoreElements: function(element) {
                 // 忽略可能包含不支持CSS的元素
                 return false;
@@ -428,6 +426,23 @@
         html2canvas(selectedElement, canvasOptions).then(canvas => {
             console.log('Canvas创建成功:', canvas.width + 'x' + canvas.height);
             
+            let finalCanvas = canvas;
+
+            const targetWidth = maxWidth === 'original'
+                ? Math.round(canvas.width / canvasOptions.scale)
+                : parseInt(maxWidth);
+            if (targetWidth > 0 && canvas.width > 0 && canvas.width !== targetWidth) {
+                const scaledCanvas = document.createElement('canvas');
+                scaledCanvas.width = targetWidth;
+                scaledCanvas.height = Math.max(1, Math.round(canvas.height * targetWidth / canvas.width));
+                const scaledCtx = scaledCanvas.getContext('2d');
+                scaledCtx.imageSmoothingEnabled = true;
+                scaledCtx.imageSmoothingQuality = 'high';
+                scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+                finalCanvas = scaledCanvas;
+                console.log('尺寸缩放完成:', scaledCanvas.width + 'x' + scaledCanvas.height);
+            }
+
             // 恢复原始样式
             try {
                 originalStyles.forEach((fixes, el) => {
@@ -448,7 +463,7 @@
                 const link = document.createElement('a');
                 const fileName = `html-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
                 link.download = fileName;
-                link.href = canvas.toDataURL('image/png');
+                link.href = finalCanvas.toDataURL('image/png');
                 
                 document.body.appendChild(link);
                 link.click();
@@ -893,10 +908,8 @@
         const canvasOptions = {
             allowTaint: true,
             useCORS: true,
-            scale: 2, // 高清导出
+            scale: 2,
             logging: false, // 关闭日志
-            width: maxWidth === 'original' ? undefined : parseInt(maxWidth),
-            height: undefined,
             onclone: function(clonedDoc) {
                 // 在克隆的文档中移除可能导致问题的CSS样式
                 try {
@@ -1111,8 +1124,6 @@
             useCORS: true,
             scale: 2,
             logging: false,
-            width: maxWidth === 'original' ? undefined : parseInt(maxWidth),
-            height: undefined,
             ignoreElements: function(element) {
                 // 忽略可能包含不支持CSS的元素
                 return false;
@@ -1192,14 +1203,29 @@
             
             let finalCanvas = canvas;
             
+            const targetWidth = maxWidth === 'original'
+                ? Math.round(canvas.width / canvasOptions.scale)
+                : parseInt(maxWidth);
+            if (targetWidth > 0 && canvas.width > 0 && canvas.width !== targetWidth) {
+                const scaledCanvas = document.createElement('canvas');
+                scaledCanvas.width = targetWidth;
+                scaledCanvas.height = Math.max(1, Math.round(canvas.height * targetWidth / canvas.width));
+                const scaledCtx = scaledCanvas.getContext('2d');
+                scaledCtx.imageSmoothingEnabled = true;
+                scaledCtx.imageSmoothingQuality = 'high';
+                scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+                finalCanvas = scaledCanvas;
+                console.log('尺寸缩放完成:', scaledCanvas.width + 'x' + scaledCanvas.height);
+            }
+
             // 如果启用了边距功能，创建带边距的画布
             if (marginSize > 0) {
                 console.log('开始处理边距功能...');
                 
                 // 创建新的画布，尺寸为原画布 + 边距
                 const newCanvas = document.createElement('canvas');
-                const newWidth = canvas.width + marginSize * 2;
-                const newHeight = canvas.height + marginSize * 2;
+                const newWidth = finalCanvas.width + marginSize * 2;
+                const newHeight = finalCanvas.height + marginSize * 2;
                 newCanvas.width = newWidth;
                 newCanvas.height = newHeight;
                 
@@ -1221,7 +1247,7 @@
                 // 透明背景不需要填充
                 
                 // 将原始截图放在新画布的中心
-                ctx.drawImage(canvas, marginSize, marginSize);
+                ctx.drawImage(finalCanvas, marginSize, marginSize);
                 
                 finalCanvas = newCanvas;
                 console.log('边距处理完成，新尺寸:', newWidth + 'x' + newHeight);
