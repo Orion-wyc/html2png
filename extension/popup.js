@@ -175,43 +175,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // 激活工具
     function activateTool() {
         return new Promise((resolve, reject) => {
-            // 先注入扩展 ID（在 MAIN world 中执行）
+            // 注入一个函数，先设置扩展 ID，然后加载主脚本
             chrome.scripting.executeScript({
                 target: {tabId: currentTabId},
                 world: 'MAIN',
                 func: (extensionId) => {
+                    // 设置扩展 ID
                     window.__HTML2PNG_EXTENSION_ID__ = extensionId;
+                    
+                    // 动态加载主脚本
+                    const script = document.createElement('script');
+                    script.src = `chrome-extension://${extensionId}/html-exporter-combined.js`;
+                    document.head.appendChild(script);
                 },
                 args: [chrome.runtime.id]
             }, function() {
                 if (chrome.runtime.lastError) {
-                    console.error('注入扩展 ID 失败:', chrome.runtime.lastError);
+                    console.error('注入脚本失败:', chrome.runtime.lastError);
+                    statusText.textContent = '激活失败，请刷新页面重试';
+                    reject(chrome.runtime.lastError);
+                    return;
                 }
-                
-                // 然后注入主脚本（也在 MAIN world 中执行）
-                chrome.scripting.executeScript({
-                    target: {tabId: currentTabId},
-                    world: 'MAIN',
-                    files: ['html-exporter-combined.js']
-                }, function() {
-                    if (chrome.runtime.lastError) {
-                        console.error('注入脚本失败:', chrome.runtime.lastError);
-                        statusText.textContent = '激活失败，请刷新页面重试';
-                        reject(chrome.runtime.lastError);
-                        return;
-                    }
-                
-                    // 等待脚本初始化
-                    setTimeout(() => {
-                        // 通知content.js激活工具
-                        chrome.tabs.sendMessage(currentTabId, {action: 'activate'}, function(response) {
-                            console.log('[Popup] 激活通知响应:', response);
-                        });
-                        updateSettings();
-                        updateUI('ready');
-                        resolve();
-                    }, 500);
-                });
+            
+                // 等待脚本初始化
+                setTimeout(() => {
+                    // 通知content.js激活工具
+                    chrome.tabs.sendMessage(currentTabId, {action: 'activate'}, function(response) {
+                        console.log('[Popup] 激活通知响应:', response);
+                    });
+                    updateSettings();
+                    updateUI('ready');
+                    resolve();
+                }, 500);
             });
         });
     }
