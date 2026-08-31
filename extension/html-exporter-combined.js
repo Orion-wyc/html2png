@@ -1676,25 +1676,39 @@
                 return;
             }
             
-            // 检查是否在扩展环境中
-            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-                // 扩展环境：从本地加载
-                const pakoUrl = chrome.runtime.getURL('pako.min.js');
-                const upngUrl = chrome.runtime.getURL('UPNG.min.js');
+            // 检查是否有扩展 ID（通过注入脚本设置）
+            const extensionId = window.__HTML2PNG_EXTENSION_ID__;
+            
+            if (extensionId) {
+                // 扩展环境：使用 fetch 加载本地资源
+                const extensionBaseUrl = `chrome-extension://${extensionId}/`;
                 
-                // 先加载 pako（UPNG.js 的依赖）
-                const pakoScript = document.createElement('script');
-                pakoScript.src = pakoUrl;
-                pakoScript.onload = () => {
-                    // pako 加载成功，加载 UPNG.js
-                    const upngScript = document.createElement('script');
-                    upngScript.src = upngUrl;
-                    upngScript.onload = resolve;
-                    upngScript.onerror = reject;
-                    document.head.appendChild(upngScript);
-                };
-                pakoScript.onerror = reject;
-                document.head.appendChild(pakoScript);
+                fetch(extensionBaseUrl + 'pako.min.js')
+                    .then(response => response.text())
+                    .then(pakoCode => {
+                        // 执行 pako
+                        const pakoScript = document.createElement('script');
+                        pakoScript.textContent = pakoCode;
+                        document.head.appendChild(pakoScript);
+                        
+                        // 加载 UPNG.js
+                        return fetch(extensionBaseUrl + 'UPNG.min.js');
+                    })
+                    .then(response => response.text())
+                    .then(upngCode => {
+                        // 执行 UPNG
+                        const upngScript = document.createElement('script');
+                        upngScript.textContent = upngCode;
+                        document.head.appendChild(upngScript);
+                        
+                        // 检查是否加载成功
+                        if (window.UPNG && window.pako) {
+                            resolve();
+                        } else {
+                            reject(new Error('UPNG.js 加载失败'));
+                        }
+                    })
+                    .catch(reject);
             } else {
                 // 非扩展环境：从 CDN 加载
                 const pakoScript = document.createElement('script');

@@ -175,16 +175,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // 激活工具
     function activateTool() {
         return new Promise((resolve, reject) => {
+            // 先注入扩展 ID
             chrome.scripting.executeScript({
                 target: {tabId: currentTabId},
-                files: ['html-exporter-combined.js']
+                func: (extensionId) => {
+                    window.__HTML2PNG_EXTENSION_ID__ = extensionId;
+                },
+                args: [chrome.runtime.id]
             }, function() {
                 if (chrome.runtime.lastError) {
-                    console.error('注入脚本失败:', chrome.runtime.lastError);
-                    statusText.textContent = '激活失败，请刷新页面重试';
-                    reject(chrome.runtime.lastError);
-                    return;
+                    console.error('注入扩展 ID 失败:', chrome.runtime.lastError);
                 }
+                
+                // 然后注入主脚本
+                chrome.scripting.executeScript({
+                    target: {tabId: currentTabId},
+                    files: ['html-exporter-combined.js']
+                }, function() {
+                    if (chrome.runtime.lastError) {
+                        console.error('注入脚本失败:', chrome.runtime.lastError);
+                        statusText.textContent = '激活失败，请刷新页面重试';
+                        reject(chrome.runtime.lastError);
+                        return;
+                    }
                 
                 // 等待脚本初始化
                 setTimeout(() => {
