@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const sizeSelect = document.getElementById('sizeSelect');
+    const compressionSelect = document.getElementById('compressionSelect');
     const backgroundRadios = document.querySelectorAll('input[name="background"]');
     const marginEnabledCheckbox = document.getElementById('marginEnabled');
     const marginSettings = document.getElementById('marginSettings');
@@ -15,8 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 从存储中恢复设置
     function loadSettings() {
-        chrome.storage.sync.get(['backgroundColor', 'maxWidth', 'marginEnabled', 'marginSize'], function(result) {
-            // 设置背景选项
+        chrome.storage.sync.get(['backgroundColor', 'maxWidth', 'marginEnabled', 'marginSize', 'compressionMode'], function(result) {
             if (result.backgroundColor) {
                 const targetRadio = document.querySelector(`input[name="background"][value="${result.backgroundColor}"]`);
                 if (targetRadio) {
@@ -24,12 +24,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // 设置尺寸选项
             if (result.maxWidth) {
                 sizeSelect.value = result.maxWidth;
             }
             
-            // 设置边距选项
+            if (result.compressionMode) {
+                compressionSelect.value = result.compressionMode;
+            }
+            
             if (result.marginEnabled !== undefined) {
                 marginEnabledCheckbox.checked = result.marginEnabled;
                 marginSettings.style.display = result.marginEnabled ? 'block' : 'none';
@@ -48,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const settings = {
             backgroundColor: document.querySelector('input[name="background"]:checked').value,
             maxWidth: sizeSelect.value,
+            compressionMode: compressionSelect.value,
             marginEnabled: marginEnabledCheckbox.checked,
             marginSize: parseInt(marginSizeInput.value) || 50
         };
@@ -249,6 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const settings = {
             backgroundColor: document.querySelector('input[name="background"]:checked').value,
             maxWidth: sizeSelect.value,
+            compressionMode: compressionSelect.value,
             marginEnabled: marginEnabledCheckbox.checked,
             marginSize: parseInt(marginSizeInput.value) || 50
         };
@@ -272,7 +276,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     sizeSelect.addEventListener('change', updateSettings);
     
-    // 边距功能事件监听
+    compressionSelect.addEventListener('change', updateSettings);
+    
     marginEnabledCheckbox.addEventListener('change', function() {
         marginSettings.style.display = this.checked ? 'block' : 'none';
         updateSettings();

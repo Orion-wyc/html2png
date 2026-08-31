@@ -1650,6 +1650,9 @@
         if (settings.maxWidth !== undefined) {
             globalSettings.maxWidth = settings.maxWidth;
         }
+        if (settings.compressionMode !== undefined) {
+            globalSettings.compressionMode = settings.compressionMode;
+        }
         if (settings.marginEnabled !== undefined) {
             globalSettings.marginEnabled = settings.marginEnabled;
         }
