@@ -175,9 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 激活工具
     function activateTool() {
         return new Promise((resolve, reject) => {
-            // 先注入扩展 ID
+            // 先注入扩展 ID（在 MAIN world 中执行）
             chrome.scripting.executeScript({
                 target: {tabId: currentTabId},
+                world: 'MAIN',
                 func: (extensionId) => {
                     window.__HTML2PNG_EXTENSION_ID__ = extensionId;
                 },
@@ -187,9 +188,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('注入扩展 ID 失败:', chrome.runtime.lastError);
                 }
                 
-                // 然后注入主脚本
+                // 然后注入主脚本（也在 MAIN world 中执行）
                 chrome.scripting.executeScript({
                     target: {tabId: currentTabId},
+                    world: 'MAIN',
                     files: ['html-exporter-combined.js']
                 }, function() {
                     if (chrome.runtime.lastError) {
@@ -199,16 +201,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                 
-                // 等待脚本初始化
-                setTimeout(() => {
-                    // 通知content.js激活工具
-                    chrome.tabs.sendMessage(currentTabId, {action: 'activate'}, function(response) {
-                        console.log('[Popup] 激活通知响应:', response);
-                    });
-                    updateSettings();
-                    updateUI('ready');
-                    resolve();
-                }, 500);
+                    // 等待脚本初始化
+                    setTimeout(() => {
+                        // 通知content.js激活工具
+                        chrome.tabs.sendMessage(currentTabId, {action: 'activate'}, function(response) {
+                            console.log('[Popup] 激活通知响应:', response);
+                        });
+                        updateSettings();
+                        updateUI('ready');
+                        resolve();
+                    }, 500);
+                });
             });
         });
     }
