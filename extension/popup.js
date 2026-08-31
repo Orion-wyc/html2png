@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusText = document.getElementById('statusText');
     const sizeSelect = document.getElementById('sizeSelect');
     const compressionSelect = document.getElementById('compressionSelect');
+    const stripAlphaCheckbox = document.getElementById('stripAlpha');
     const backgroundRadios = document.querySelectorAll('input[name="background"]');
     const marginEnabledCheckbox = document.getElementById('marginEnabled');
     const marginSettings = document.getElementById('marginSettings');
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 从存储中恢复设置
     function loadSettings() {
-        chrome.storage.sync.get(['backgroundColor', 'maxWidth', 'marginEnabled', 'marginSize', 'compressionMode'], function(result) {
+        chrome.storage.sync.get(['backgroundColor', 'maxWidth', 'marginEnabled', 'marginSize', 'compressionMode', 'stripAlpha'], function(result) {
             if (result.backgroundColor) {
                 const targetRadio = document.querySelector(`input[name="background"][value="${result.backgroundColor}"]`);
                 if (targetRadio) {
@@ -30,6 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (result.compressionMode) {
                 compressionSelect.value = result.compressionMode;
+            }
+            
+            if (result.stripAlpha !== undefined) {
+                stripAlphaCheckbox.checked = result.stripAlpha;
             }
             
             if (result.marginEnabled !== undefined) {
@@ -51,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
             backgroundColor: document.querySelector('input[name="background"]:checked').value,
             maxWidth: sizeSelect.value,
             compressionMode: compressionSelect.value,
+            stripAlpha: stripAlphaCheckbox.checked,
             marginEnabled: marginEnabledCheckbox.checked,
             marginSize: parseInt(marginSizeInput.value) || 50
         };
@@ -253,6 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             backgroundColor: document.querySelector('input[name="background"]:checked').value,
             maxWidth: sizeSelect.value,
             compressionMode: compressionSelect.value,
+            stripAlpha: stripAlphaCheckbox.checked,
             marginEnabled: marginEnabledCheckbox.checked,
             marginSize: parseInt(marginSizeInput.value) || 50
         };
@@ -277,6 +284,8 @@ document.addEventListener('DOMContentLoaded', function() {
     sizeSelect.addEventListener('change', updateSettings);
     
     compressionSelect.addEventListener('change', updateSettings);
+    
+    stripAlphaCheckbox.addEventListener('change', updateSettings);
     
     marginEnabledCheckbox.addEventListener('change', function() {
         marginSettings.style.display = this.checked ? 'block' : 'none';

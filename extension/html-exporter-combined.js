@@ -51,7 +51,8 @@
         maxWidth: 'original',
         marginEnabled: false,
         marginSize: 50,
-        compressionMode: 'lossless'
+        compressionMode: 'lossless',
+        stripAlpha: false
     };
     
     // 样式常量
@@ -467,8 +468,37 @@
                 
                 // 使用 UPNG.js 优化 PNG 编码
                 if (window.UPNG && window.pako) {
-                    const ctx = finalCanvas.getContext('2d');
-                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    let encodeCanvas = finalCanvas;
+                    
+                    // 如果启用去除透明通道且背景非透明，先扁平化画布
+                    if (globalSettings.stripAlpha && globalSettings.backgroundColor !== 'transparent') {
+                        const flatCanvas = document.createElement('canvas');
+                        flatCanvas.width = finalCanvas.width;
+                        flatCanvas.height = finalCanvas.height;
+                        const flatCtx = flatCanvas.getContext('2d');
+                        
+                        // 确定背景颜色
+                        let bgColor = '#ffffff';
+                        if (globalSettings.backgroundColor === '#ffffff') {
+                            bgColor = '#ffffff';
+                        } else if (globalSettings.backgroundColor === 'original') {
+                            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+                            const htmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
+                            bgColor = bodyBg !== 'rgba(0, 0, 0, 0)' ? bodyBg : (htmlBg !== 'rgba(0, 0, 0, 0)' ? htmlBg : '#ffffff');
+                        }
+                        
+                        // 填充背景色
+                        flatCtx.fillStyle = bgColor;
+                        flatCtx.fillRect(0, 0, flatCanvas.width, flatCanvas.height);
+                        // 绘制原画布
+                        flatCtx.drawImage(finalCanvas, 0, 0);
+                        
+                        encodeCanvas = flatCanvas;
+                        console.log('已扁平化画布，去除透明通道，背景色:', bgColor);
+                    }
+                    
+                    const ctx = encodeCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, encodeCanvas.width, encodeCanvas.height);
                     
                     let cnum = 0;
                     if (globalSettings.compressionMode === 'lossy256') {
@@ -477,10 +507,10 @@
                         cnum = 128;
                     }
                     
-                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], encodeCanvas.width, encodeCanvas.height, cnum);
                     const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
                     link.href = URL.createObjectURL(pngBlob);
-                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode);
+                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode, '去除透明:', globalSettings.stripAlpha && globalSettings.backgroundColor !== 'transparent');
                 } else {
                     link.href = finalCanvas.toDataURL('image/png');
                 }
@@ -839,6 +869,15 @@
             </div>
             <div style="margin-bottom: 20px;">
                 <label style="display: flex; align-items: center; margin-bottom: 8px; color: #555; font-weight: 500; cursor: pointer;">
+                    <input type="checkbox" id="stripAlpha" style="margin-right: 8px;">
+                    去除透明通道
+                </label>
+                <div style="font-size: 12px; color: #888; line-height: 1.4; margin-left: 20px;">
+                    非透明背景时移除 Alpha 通道，减小文件体积
+                </div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px; color: #555; font-weight: 500; cursor: pointer;">
                     <input type="checkbox" id="marginEnabled" style="margin-right: 8px;">
                     增加边距
                 </label>
@@ -916,6 +955,10 @@
         const compressionSelect = document.getElementById('compressionSelect');
         const compressionMode = compressionSelect ? compressionSelect.value : 'lossless';
         
+        // 获取去除透明通道设置
+        const stripAlphaCheckbox = document.getElementById('stripAlpha');
+        const stripAlpha = stripAlphaCheckbox ? stripAlphaCheckbox.checked : false;
+        
         // 获取边距设置
         const marginEnabled = document.getElementById('marginEnabled').checked;
         let marginSize = 0;
@@ -931,11 +974,11 @@
         exportBtn.disabled = true;
         
         // html2canvas库应该已经在注入时加载，直接执行导出
-        performActualExport(selectedElement, maxWidth, backgroundColor, exportBtn, originalText, marginSize);
+        performActualExport(selectedElement, maxWidth, backgroundColor, exportBtn, originalText, marginSize, compressionMode, stripAlpha);
     }
     
     // 实际执行导出的函数
-    function performActualExport(element, maxWidth, backgroundColor, exportBtn, originalText, marginSize = 0) {
+    function performActualExport(element, maxWidth, backgroundColor, exportBtn, originalText, marginSize = 0, compressionMode = 'lossless', stripAlpha = false) {
         console.log('开始使用html2canvas导出...', typeof window.html2canvas);
         console.log('边距设置:', { marginSize, backgroundColor });
         
@@ -1068,8 +1111,38 @@
                 
                 // 使用 UPNG.js 优化 PNG 编码
                 if (window.UPNG && window.pako) {
-                    const ctx = finalCanvas.getContext('2d');
-                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    let encodeCanvas = finalCanvas;
+                    
+                    // 如果启用去除透明通道且背景非透明，先扁平化画布
+                    if (stripAlpha && backgroundColor !== null) {
+                        const flatCanvas = document.createElement('canvas');
+                        flatCanvas.width = finalCanvas.width;
+                        flatCanvas.height = finalCanvas.height;
+                        const flatCtx = flatCanvas.getContext('2d');
+                        
+                        // 确定背景颜色
+                        let bgColor = '#ffffff';
+                        if (backgroundColor === '#ffffff') {
+                            bgColor = '#ffffff';
+                        } else {
+                            // original or other
+                            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+                            const htmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
+                            bgColor = bodyBg !== 'rgba(0, 0, 0, 0)' ? bodyBg : (htmlBg !== 'rgba(0, 0, 0, 0)' ? htmlBg : '#ffffff');
+                        }
+                        
+                        // 填充背景色
+                        flatCtx.fillStyle = bgColor;
+                        flatCtx.fillRect(0, 0, flatCanvas.width, flatCanvas.height);
+                        // 绘制原画布
+                        flatCtx.drawImage(finalCanvas, 0, 0);
+                        
+                        encodeCanvas = flatCanvas;
+                        console.log('已扁平化画布，去除透明通道，背景色:', bgColor);
+                    }
+                    
+                    const ctx = encodeCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, encodeCanvas.width, encodeCanvas.height);
                     
                     let cnum = 0;
                     if (compressionMode === 'lossy256') {
@@ -1078,10 +1151,10 @@
                         cnum = 128;
                     }
                     
-                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], encodeCanvas.width, encodeCanvas.height, cnum);
                     const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
                     link.href = URL.createObjectURL(pngBlob);
-                    console.log('UPNG编码完成，压缩模式:', compressionMode);
+                    console.log('UPNG编码完成，压缩模式:', compressionMode, '去除透明:', stripAlpha && backgroundColor !== null);
                 } else {
                     link.href = finalCanvas.toDataURL('image/png');
                 }
@@ -1333,8 +1406,37 @@
                 
                 // 使用 UPNG.js 优化 PNG 编码
                 if (window.UPNG && window.pako) {
-                    const ctx = finalCanvas.getContext('2d');
-                    const imageData = ctx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+                    let encodeCanvas = finalCanvas;
+                    
+                    // 如果启用去除透明通道且背景非透明，先扁平化画布
+                    if (globalSettings.stripAlpha && globalSettings.backgroundColor !== 'transparent') {
+                        const flatCanvas = document.createElement('canvas');
+                        flatCanvas.width = finalCanvas.width;
+                        flatCanvas.height = finalCanvas.height;
+                        const flatCtx = flatCanvas.getContext('2d');
+                        
+                        // 确定背景颜色
+                        let bgColor = '#ffffff';
+                        if (globalSettings.backgroundColor === '#ffffff') {
+                            bgColor = '#ffffff';
+                        } else if (globalSettings.backgroundColor === 'original') {
+                            const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+                            const htmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
+                            bgColor = bodyBg !== 'rgba(0, 0, 0, 0)' ? bodyBg : (htmlBg !== 'rgba(0, 0, 0, 0)' ? htmlBg : '#ffffff');
+                        }
+                        
+                        // 填充背景色
+                        flatCtx.fillStyle = bgColor;
+                        flatCtx.fillRect(0, 0, flatCanvas.width, flatCanvas.height);
+                        // 绘制原画布
+                        flatCtx.drawImage(finalCanvas, 0, 0);
+                        
+                        encodeCanvas = flatCanvas;
+                        console.log('已扁平化画布，去除透明通道，背景色:', bgColor);
+                    }
+                    
+                    const ctx = encodeCanvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, encodeCanvas.width, encodeCanvas.height);
                     
                     let cnum = 0;
                     if (globalSettings.compressionMode === 'lossy256') {
@@ -1343,10 +1445,10 @@
                         cnum = 128;
                     }
                     
-                    const pngBuffer = UPNG.encode([imageData.data.buffer], finalCanvas.width, finalCanvas.height, cnum);
+                    const pngBuffer = UPNG.encode([imageData.data.buffer], encodeCanvas.width, encodeCanvas.height, cnum);
                     const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
                     link.href = URL.createObjectURL(pngBlob);
-                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode);
+                    console.log('UPNG编码完成，压缩模式:', globalSettings.compressionMode, '去除透明:', globalSettings.stripAlpha && globalSettings.backgroundColor !== 'transparent');
                 } else {
                     link.href = finalCanvas.toDataURL('image/png');
                 }
@@ -1652,6 +1754,9 @@
         }
         if (settings.compressionMode !== undefined) {
             globalSettings.compressionMode = settings.compressionMode;
+        }
+        if (settings.stripAlpha !== undefined) {
+            globalSettings.stripAlpha = settings.stripAlpha;
         }
         if (settings.marginEnabled !== undefined) {
             globalSettings.marginEnabled = settings.marginEnabled;
