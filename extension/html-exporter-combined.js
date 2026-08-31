@@ -1678,10 +1678,12 @@
             
             // 检查是否有扩展 ID（通过注入脚本设置）
             const extensionId = window.__HTML2PNG_EXTENSION_ID__;
+            console.log('[Combined] loadUPNG: extensionId =', extensionId);
             
             if (extensionId) {
                 // 扩展环境：使用 fetch 加载本地资源
                 const extensionBaseUrl = `chrome-extension://${extensionId}/`;
+                console.log('[Combined] 从扩展加载 UPNG.js:', extensionBaseUrl);
                 
                 fetch(extensionBaseUrl + 'pako.min.js')
                     .then(response => response.text())
@@ -1703,6 +1705,7 @@
                         
                         // 检查是否加载成功
                         if (window.UPNG && window.pako) {
+                            console.log('[Combined] UPNG.js 加载成功');
                             resolve();
                         } else {
                             reject(new Error('UPNG.js 加载失败'));
@@ -1711,6 +1714,7 @@
                     .catch(reject);
             } else {
                 // 非扩展环境：从 CDN 加载
+                console.log('[Combined] 从 CDN 加载 UPNG.js');
                 const pakoScript = document.createElement('script');
                 pakoScript.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
                 pakoScript.onload = () => {

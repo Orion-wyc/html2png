@@ -29,7 +29,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["pako.min.js", "UPNG.min.js"],
+      "resources": ["pako.min.js", "UPNG.min.js", "html-exporter-combined.js"],
       "matches": ["<all_urls>"]
     }
   ],

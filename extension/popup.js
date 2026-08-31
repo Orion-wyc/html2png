@@ -180,12 +180,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 target: {tabId: currentTabId},
                 world: 'MAIN',
                 func: (extensionId) => {
+                    console.log('[Popup] 注入扩展 ID:', extensionId);
                     // 设置扩展 ID
                     window.__HTML2PNG_EXTENSION_ID__ = extensionId;
+                    console.log('[Popup] window.__HTML2PNG_EXTENSION_ID__ 已设置:', window.__HTML2PNG_EXTENSION_ID__);
                     
                     // 动态加载主脚本
                     const script = document.createElement('script');
                     script.src = `chrome-extension://${extensionId}/html-exporter-combined.js`;
+                    console.log('[Popup] 加载主脚本:', script.src);
                     document.head.appendChild(script);
                 },
                 args: [chrome.runtime.id]
