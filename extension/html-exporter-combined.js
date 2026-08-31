@@ -1676,19 +1676,39 @@
                 return;
             }
             
-            // 先加载 pako（UPNG.js 的依赖）
-            const pakoScript = document.createElement('script');
-            pakoScript.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
-            pakoScript.onload = () => {
-                // pako 加载成功，加载 UPNG.js
-                const upngScript = document.createElement('script');
-                upngScript.src = 'https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js';
-                upngScript.onload = resolve;
-                upngScript.onerror = reject;
-                document.head.appendChild(upngScript);
-            };
-            pakoScript.onerror = reject;
-            document.head.appendChild(pakoScript);
+            // 检查是否在扩展环境中
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+                // 扩展环境：从本地加载
+                const pakoUrl = chrome.runtime.getURL('pako.min.js');
+                const upngUrl = chrome.runtime.getURL('UPNG.min.js');
+                
+                // 先加载 pako（UPNG.js 的依赖）
+                const pakoScript = document.createElement('script');
+                pakoScript.src = pakoUrl;
+                pakoScript.onload = () => {
+                    // pako 加载成功，加载 UPNG.js
+                    const upngScript = document.createElement('script');
+                    upngScript.src = upngUrl;
+                    upngScript.onload = resolve;
+                    upngScript.onerror = reject;
+                    document.head.appendChild(upngScript);
+                };
+                pakoScript.onerror = reject;
+                document.head.appendChild(pakoScript);
+            } else {
+                // 非扩展环境：从 CDN 加载
+                const pakoScript = document.createElement('script');
+                pakoScript.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
+                pakoScript.onload = () => {
+                    const upngScript = document.createElement('script');
+                    upngScript.src = 'https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js';
+                    upngScript.onload = resolve;
+                    upngScript.onerror = reject;
+                    document.head.appendChild(upngScript);
+                };
+                pakoScript.onerror = reject;
+                document.head.appendChild(pakoScript);
+            }
         });
     }
 
