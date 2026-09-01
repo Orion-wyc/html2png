@@ -503,7 +503,7 @@
     <div class="container">
         <header class="header">
             <h1>小山网页内容转 PNG 工具</h1>
-            <p>轻量级、零依赖的网页元素导出解决方案</p>
+            <p>轻量级、零依赖的网页元素导出解决方案，支持 UPNG.js 压缩优化</p>
             <p style="margin-top: 20px;">
                 <a href="https://github.com/itshen/html2png" target="_blank" class="github-link">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 8px; vertical-align: text-top;">
@@ -519,7 +519,7 @@
                 <h3>🚀 轻量级设计</h3>
                 <ul>
                     <li>单文件解决方案</li>
-                    <li>不超过几KB大小</li>
+                    <li>自动加载所需依赖</li>
                     <li>零依赖设计</li>
                     <li>加载速度极快</li>
                 </ul>
@@ -530,7 +530,7 @@
                 <ul>
                     <li>一行代码引入</li>
                     <li>自动启动运行</li>
-                    <li>无需配置设置</li>
+                    <li>齿轮面板设置参数</li>
                     <li>即用即走体验</li>
                 </ul>
             </div>
@@ -538,10 +538,40 @@
             <div class="feature-card">
                 <h3>✨ 强大功能</h3>
                 <ul>
-                    <li>智能元素选择</li>
-                    <li>透明背景导出</li>
+                    <li>智能元素选择 + 右键选父级</li>
+                    <li>透明/白底/原文档背景</li>
                     <li>多种尺寸选项</li>
                     <li>自动文件命名</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🗜️ PNG 压缩优化</h3>
+                <ul>
+                    <li>集成 UPNG.js 高级编码</li>
+                    <li>无损 / 256色 / 128色压缩</li>
+                    <li>去除透明通道减小体积</li>
+                    <li>强制 RGBA 透明输出</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>📐 自定义边距</h3>
+                <ul>
+                    <li>可选开启边距功能</li>
+                    <li>0-200px 自由设置</li>
+                    <li>边距背景自动跟随</li>
+                    <li>导出更美观的留白</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>🧩 Chrome 插件</h3>
+                <ul>
+                    <li>任意网页即装即用</li>
+                    <li>设置自动持久化</li>
+                    <li>内置依赖不受 CSP 限制</li>
+                    <li>功能与脚本版完全一致</li>
                 </ul>
             </div>
         </div>
@@ -550,23 +580,23 @@
             <h3>📋 使用步骤</h3>
             <div class="step">
                 <div class="step-number">1</div>
-                <div>点击页面右下角的"导出"按钮进入选择模式</div>
+                <div>点击右下角齿轮图标，设置导出参数（背景类型、尺寸、压缩模式、边距等）</div>
             </div>
             <div class="step">
                 <div class="step-number">2</div>
-                <div>鼠标移动到想要导出的内容上，元素会显示蓝色高亮边框</div>
+                <div>点击"开始选择"按钮进入元素选择模式</div>
             </div>
             <div class="step">
                 <div class="step-number">3</div>
-                <div>点击选中该元素，会弹出导出设置对话框</div>
+                <div>鼠标移动到想要导出的内容上，元素会显示蓝色高亮边框</div>
             </div>
             <div class="step">
                 <div class="step-number">4</div>
-                <div>选择图片最大宽度（800px、1200px、1920px或原始尺寸）</div>
+                <div>左键点击选中元素自动导出；右键点击可逐级切换到父级元素</div>
             </div>
             <div class="step">
                 <div class="step-number">5</div>
-                <div>点击"导出PNG"按钮，图片将自动下载到本地</div>
+                <div>图片自动下载后，工具会重新进入选择模式，可继续导出下一个元素</div>
             </div>
         </div>
 
@@ -664,8 +694,8 @@
 
         <div class="demo-section">
             <h2>🚀 立即体验</h2>
-            <p>工具已加载完成！看到右下角的"导出"按钮了吗？</p>
-            <p>点击它开始选择您想要导出的页面元素吧！</p>
+            <p>工具已加载完成！看到右下角的控制面板了吗？</p>
+            <p>点击齿轮图标设置导出参数，然后点击"开始选择"即可使用！</p>
         </div>
 
         <div class="author-card">
