@@ -950,6 +950,22 @@
                     const ctx = encodeCanvas.getContext('2d');
                     const imageData = ctx.getImageData(0, 0, encodeCanvas.width, encodeCanvas.height);
                     
+                    // 如果不去除透明通道，确保至少有一个像素的 alpha < 255，强制 UPNG.js 输出 RGBA
+                    if (!globalSettings.stripAlpha || backgroundColor === 'transparent') {
+                        let hasTransparency = false;
+                        for (let i = 3; i < imageData.data.length; i += 4) {
+                            if (imageData.data[i] < 255) {
+                                hasTransparency = true;
+                                break;
+                            }
+                        }
+                        // 如果所有像素都不透明，设置第一个像素的 alpha 为 254 以强制 RGBA 输出
+                        if (!hasTransparency && imageData.data.length >= 4) {
+                            imageData.data[3] = 254;
+                            console.log('强制保留透明通道：设置像素 (0,0) 的 alpha 为 254');
+                        }
+                    }
+                    
                     // 根据压缩模式选择颜色数
                     let cnum = 0; // 默认无损
                     if (globalSettings.compressionMode === 'lossy256') {
