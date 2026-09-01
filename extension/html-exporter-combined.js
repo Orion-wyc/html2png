@@ -211,22 +211,23 @@
         return toast;
     }
 
-    // 消息监听器
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-        switch (request.action) {
-            case 'getStatus':
-                sendResponse({status: toolStatus});
-                break;
-                
-            case 'updateSettings':
-                if (request.settings) {
-                    if (request.settings.backgroundColor === 'transparent') {
-                        globalSettings.backgroundColor = 'transparent';
-                    } else if (request.settings.backgroundColor === 'white') {
-                        globalSettings.backgroundColor = '#ffffff';
-                    } else if (request.settings.backgroundColor === 'original') {
-                        globalSettings.backgroundColor = 'original';
-                    }
+    // 消息监听器（仅在扩展上下文中可用）
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+        chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+            switch (request.action) {
+                case 'getStatus':
+                    sendResponse({status: toolStatus});
+                    break;
+                    
+                case 'updateSettings':
+                    if (request.settings) {
+                        if (request.settings.backgroundColor === 'transparent') {
+                            globalSettings.backgroundColor = 'transparent';
+                        } else if (request.settings.backgroundColor === 'white') {
+                            globalSettings.backgroundColor = '#ffffff';
+                        } else if (request.settings.backgroundColor === 'original') {
+                            globalSettings.backgroundColor = 'original';
+                        }
                     globalSettings.maxWidth = request.settings.maxWidth;
                 }
                 sendResponse({success: true});
@@ -259,17 +260,20 @@
                 sendResponse({success: false});
         }
     });
+    }
     
     // 通知popup状态变化
     function notifyStatusChange(status) {
         console.log('[Combined] notifyStatusChange:', status, '之前状态:', toolStatus);
         toolStatus = status;
-        chrome.runtime.sendMessage({
-            action: 'statusUpdate',
-            status: status
-        }).catch((error) => {
-            console.log('[Combined] 发送状态更新失败:', error);
-        });
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage({
+                action: 'statusUpdate',
+                status: status
+            }).catch((error) => {
+                console.log('[Combined] 发送状态更新失败:', error);
+            });
+        }
     }
     
     // 停用工具
