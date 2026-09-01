@@ -240,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 直接调用API，不再使用消息机制
         chrome.scripting.executeScript({
             target: {tabId: currentTabId},
+            world: 'MAIN',
             func: () => {
                 if (window.htmlToPngExporter && window.htmlToPngExporter.startSelection) {
                     console.log('[Popup] 调用API: window.htmlToPngExporter.startSelection()');
