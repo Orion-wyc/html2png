@@ -1672,66 +1672,15 @@
         }
     }
 
-    // 动态加载 UPNG.js 和 pako
-    function loadUPNG() {
-        return new Promise((resolve, reject) => {
-            if (window.UPNG && window.pako) {
-                resolve();
-                return;
-            }
-            
-            // 检查是否有扩展 ID（通过注入脚本设置）
-            const extensionId = window.__HTML2PNG_EXTENSION_ID__;
-            console.log('[Combined] loadUPNG: extensionId =', extensionId);
-            
-            if (extensionId) {
-                // 扩展环境：使用 fetch 加载本地资源
-                const extensionBaseUrl = `chrome-extension://${extensionId}/`;
-                console.log('[Combined] 从扩展加载 UPNG.js:', extensionBaseUrl);
-                
-                fetch(extensionBaseUrl + 'pako.min.js')
-                    .then(response => response.text())
-                    .then(pakoCode => {
-                        // 执行 pako
-                        const pakoScript = document.createElement('script');
-                        pakoScript.textContent = pakoCode;
-                        document.head.appendChild(pakoScript);
-                        
-                        // 加载 UPNG.js
-                        return fetch(extensionBaseUrl + 'UPNG.min.js');
-                    })
-                    .then(response => response.text())
-                    .then(upngCode => {
-                        // 执行 UPNG
-                        const upngScript = document.createElement('script');
-                        upngScript.textContent = upngCode;
-                        document.head.appendChild(upngScript);
-                        
-                        // 检查是否加载成功
-                        if (window.UPNG && window.pako) {
-                            console.log('[Combined] UPNG.js 加载成功');
-                            resolve();
-                        } else {
-                            reject(new Error('UPNG.js 加载失败'));
-                        }
-                    })
-                    .catch(reject);
-            } else {
-                // 非扩展环境：从 CDN 加载
-                console.log('[Combined] 从 CDN 加载 UPNG.js');
-                const pakoScript = document.createElement('script');
-                pakoScript.src = 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js';
-                pakoScript.onload = () => {
-                    const upngScript = document.createElement('script');
-                    upngScript.src = 'https://cdn.jsdelivr.net/npm/upng-js@2.1.0/UPNG.min.js';
-                    upngScript.onload = resolve;
-                    upngScript.onerror = reject;
-                    document.head.appendChild(upngScript);
-                };
-                pakoScript.onerror = reject;
-                document.head.appendChild(pakoScript);
-            }
-        });
+    // 检查 UPNG.js 和 pako 是否已加载
+    function checkUPNG() {
+        if (window.UPNG && window.pako) {
+            console.log('[Combined] UPNG.js 和 pako 已加载，可以使用 PNG 优化');
+            return true;
+        } else {
+            console.warn('[Combined] UPNG.js 或 pako 未加载，将使用原生 PNG 导出');
+            return false;
+        }
     }
 
     // 初始化
@@ -1748,13 +1697,9 @@
         createHighlightOverlay();
         createBlockingOverlay();
         
-        // 加载 UPNG.js（PNG 优化库）
-        loadUPNG().then(() => {
-            console.log('HTML导出PNG工具插件版已加载完成（含 UPNG.js 优化）');
-        }).catch(error => {
-            console.warn('UPNG.js 加载失败，将使用原生 PNG 导出:', error);
-            console.log('HTML导出PNG工具插件版已加载完成');
-        });
+        // 检查 UPNG.js 是否已加载
+        checkUPNG();
+        console.log('HTML导出PNG工具插件版已加载完成');
     }
     
     // 启动

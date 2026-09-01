@@ -175,23 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 激活工具
     function activateTool() {
         return new Promise((resolve, reject) => {
-            // 注入一个函数，先设置扩展 ID，然后加载主脚本
+            // 按顺序注入所有脚本到 ISOLATED world
             chrome.scripting.executeScript({
                 target: {tabId: currentTabId},
-                world: 'MAIN',
-                func: (extensionId) => {
-                    console.log('[Popup] 注入扩展 ID:', extensionId);
-                    // 设置扩展 ID
-                    window.__HTML2PNG_EXTENSION_ID__ = extensionId;
-                    console.log('[Popup] window.__HTML2PNG_EXTENSION_ID__ 已设置:', window.__HTML2PNG_EXTENSION_ID__);
-                    
-                    // 动态加载主脚本
-                    const script = document.createElement('script');
-                    script.src = `chrome-extension://${extensionId}/html-exporter-combined.js`;
-                    console.log('[Popup] 加载主脚本:', script.src);
-                    document.head.appendChild(script);
-                },
-                args: [chrome.runtime.id]
+                files: ['pako.min.js', 'UPNG.min.js', 'html-exporter-combined.js']
             }, function() {
                 if (chrome.runtime.lastError) {
                     console.error('注入脚本失败:', chrome.runtime.lastError);
@@ -240,7 +227,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 直接调用API，不再使用消息机制
         chrome.scripting.executeScript({
             target: {tabId: currentTabId},
-            world: 'MAIN',
             func: () => {
                 if (window.htmlToPngExporter && window.htmlToPngExporter.startSelection) {
                     console.log('[Popup] 调用API: window.htmlToPngExporter.startSelection()');
